@@ -20,17 +20,15 @@ with st.form("book_form"):
 
     submitted = st.form_submit_button("Compare Books")
 
-# OpenAI API key from environment variable
+# OpenAI API key setup
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def create_text_image(text):
-    # Create a simple image from the comparison text
     width, height = 800, 1000
     image = Image.new("RGB", (width, height), color=(255, 255, 255))
     draw = ImageDraw.Draw(image)
     font = ImageFont.load_default()
 
-    # Split text into lines and wrap
     lines = []
     for line in text.split('\n'):
         while len(line) > 100:
@@ -74,7 +72,7 @@ Include key aspects such as focus, tone, style, audience, and overall message. P
                 temperature=0.7,
                 max_tokens=1800
             )
-            ai_output = response.choices[0].message.content
+            ai_output = response.choices[0].message["content"]
 
             st.markdown("## 📖 Comparison Analysis")
             st.markdown(f"""<div style='background-color:#f9f9f9;padding:15px;border-radius:10px;border:1px solid #ddd;'>
