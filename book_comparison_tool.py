@@ -64,7 +64,7 @@ Include key aspects such as focus, tone, style, audience, and overall message. P
 
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a literary analyst."},
                     {"role": "user", "content": prompt}
