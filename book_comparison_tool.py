@@ -1,90 +1,108 @@
+
 import streamlit as st
+import openai
+import os
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
 
-# Streamlit app for comparing two books
-st.title("📚 Book Comparison Tool")
+# Title and intro
+st.title("📚 Book Comparison Tool (AI-Powered)")
+st.markdown("Enter two book titles and authors, and let AI handle the rest.")
 
-st.markdown("Enter details for two books to see a comparison of their themes, tone, and focus.")
-
-# Form inputs
+# Form to input titles and authors
 with st.form("book_form"):
     st.subheader("Book 1")
     title1 = st.text_input("Title (Book 1)", "Your Untethered Voice")
     author1 = st.text_input("Author (Book 1)", "Tracy Rohrer Irons")
-    focus1 = st.text_input("Focus (Book 1)", "Reclaiming personal voice and truth")
-    tone1 = st.text_input("Tone (Book 1)", "Reflective and healing")
-    style1 = st.text_input("Style (Book 1)", "Memoir-infused, emotional narrative")
-    audience1 = st.text_input("Audience (Book 1)", "Those reclaiming self after silence or self-doubt")
-    themes1 = st.text_area("Themes (Book 1, comma-separated)", "authenticity, courage, resilience, inner alignment")
-    comp1 = st.text_area("Complementary Elements (Book 1, comma-separated)", "Rediscovering voice, Resilience, Overcoming doubt")
 
     st.subheader("Book 2")
     title2 = st.text_input("Title (Book 2)", "Becoming a Legacy Leader")
     author2 = st.text_input("Author (Book 2)", "Zana Kenjar")
-    focus2 = st.text_input("Focus (Book 2)", "Intentional leadership and legacy")
-    tone2 = st.text_input("Tone (Book 2)", "Visionary and strategic")
-    style2 = st.text_input("Style (Book 2)", "Framework-driven, motivational")
-    audience2 = st.text_input("Audience (Book 2)", "Emerging and established leaders")
-    themes2 = st.text_area("Themes (Book 2, comma-separated)", "authenticity, courage, leadership, impact")
-    comp2 = st.text_area("Complementary Elements (Book 2, comma-separated)", "Applying vision in leadership, Influence cultivation, Purpose-driven strategy")
 
     submitted = st.form_submit_button("Compare Books")
 
+# OpenAI API key from environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+def create_text_image(text):
+    # Create a simple image from the comparison text
+    width, height = 800, 1000
+    image = Image.new("RGB", (width, height), color=(255, 255, 255))
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.load_default()
+
+    # Split text into lines and wrap
+    lines = []
+    for line in text.split('\n'):
+        while len(line) > 100:
+            idx = line.rfind(' ', 0, 100)
+            if idx == -1:
+                idx = 100
+            lines.append(line[:idx])
+            line = line[idx:].lstrip()
+        lines.append(line)
+
+    y_text = 10
+    for line in lines:
+        draw.text((10, y_text), line, fill=(0, 0, 0), font=font)
+        y_text += 15
+
+    return image
+
 if submitted:
-    book1 = {
-        "title": title1,
-        "author": author1,
-        "focus": focus1,
-        "tone": tone1,
-        "style": style1,
-        "audience": audience1,
-        "themes": [t.strip() for t in themes1.split(",")],
-        "complementary": [c.strip() for c in comp1.split(",")]
-    }
-    
-    book2 = {
-        "title": title2,
-        "author": author2,
-        "focus": focus2,
-        "tone": tone2,
-        "style": style2,
-        "audience": audience2,
-        "themes": [t.strip() for t in themes2.split(",")],
-        "complementary": [c.strip() for c in comp2.split(",")]
-    }
+    with st.spinner("Analyzing books with AI..."):
+        prompt = f"""
+Compare the following two books in terms of their similarities, differences, common themes, and complementary themes:
 
-    # Comparison logic
-    def bullet_list(items):
-        return "\n".join([f"- {item}" for item in items])
+Book 1:
+Title: {title1}
+Author: {author1}
 
-    shared_themes = list(set(book1['themes']) & set(book2['themes']))
-    similarities = [
-        "Both focus on personal growth or transformation",
-        "Encourage authenticity and empowerment",
-        "Authors speak from personal experience",
-        "Appeal to audiences seeking meaning or purpose"
-    ]
-    if shared_themes:
-        similarities.append(f"Shared themes: {', '.join(shared_themes)}")
+Book 2:
+Title: {title2}
+Author: {author2}
 
-    st.markdown("## 🔗 Similarities")
-    st.markdown(bullet_list(similarities))
+Include key aspects such as focus, tone, style, audience, and overall message. Present your findings in a detailed, thoughtful, blog-style analysis. Then, recommend 2-3 fiction and 2-3 non-fiction books a reader might enjoy based on the comparison — as a follow-up section titled: '📚 If You Liked These Books, You Might Also Like...'
+"""
 
-    st.markdown("## 🔍 Differences")
-    st.markdown(f"""
-    | Aspect | {book1['title']} | {book2['title']} |
-    |--------|--------------------------|-----------------------------|
-    | **Focus** | {book1['focus']} | {book2['focus']} |
-    | **Tone** | {book1['tone']} | {book2['tone']} |
-    | **Style** | {book1['style']} | {book2['style']} |
-    | **Audience** | {book1['audience']} | {book2['audience']} |
-    """)
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a literary analyst."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=1800
+            )
+            ai_output = response["choices"][0]["message"]["content"]
 
-    st.markdown("## 🎯 Common Elements & Themes")
-    st.markdown(bullet_list(shared_themes) if shared_themes else "None explicitly shared.")
+            # Format text as markdown with spacing
+            st.markdown("## 📖 Comparison Analysis")
+            st.markdown(f"""<div style='background-color:#f9f9f9;padding:15px;border-radius:10px;border:1px solid #ddd;'>
+            <p style='font-family:sans-serif;font-size:16px;white-space:pre-wrap'>{ai_output}</p>
+            </div>""", unsafe_allow_html=True)
 
-    st.markdown("## 🤝 Complementary Elements & Themes")
-    comp_pairs = zip(book1['complementary'], book2['complementary'])
-    comp_table = "| Book 1 | Book 2 |\n|--------|--------|\n"
-    for a, b in comp_pairs:
-        comp_table += f"| {a} | {b} |\n"
-    st.markdown(comp_table)
+            # Download as text
+            text_bytes = ai_output.encode('utf-8')
+            st.download_button(
+                label="📥 Download as Text File",
+                data=text_bytes,
+                file_name="book_comparison.txt",
+                mime="text/plain"
+            )
+
+            # Download as image
+            img = create_text_image(ai_output)
+            img_bytes = BytesIO()
+            img.save(img_bytes, format='PNG')
+            img_bytes.seek(0)
+            st.download_button(
+                label="🖼️ Download as Shareable Graphic (PNG)",
+                data=img_bytes,
+                file_name="book_comparison.png",
+                mime="image/png"
+            )
+
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
