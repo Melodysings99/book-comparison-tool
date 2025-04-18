@@ -21,7 +21,7 @@ with st.form("book_form"):
     submitted = st.form_submit_button("Compare Books")
 
 # OpenAI API key from environment variable
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def create_text_image(text):
     # Create a simple image from the comparison text
@@ -65,7 +65,7 @@ Include key aspects such as focus, tone, style, audience, and overall message. P
 """
 
         try:
-            response = client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a literary analyst."},
@@ -76,13 +76,11 @@ Include key aspects such as focus, tone, style, audience, and overall message. P
             )
             ai_output = response.choices[0].message.content
 
-            # Format text as markdown with spacing
             st.markdown("## 📖 Comparison Analysis")
             st.markdown(f"""<div style='background-color:#f9f9f9;padding:15px;border-radius:10px;border:1px solid #ddd;'>
             <p style='font-family:sans-serif;font-size:16px;white-space:pre-wrap'>{ai_output}</p>
             </div>""", unsafe_allow_html=True)
 
-            # Download as text
             text_bytes = ai_output.encode('utf-8')
             st.download_button(
                 label="📥 Download as Text File",
@@ -91,7 +89,6 @@ Include key aspects such as focus, tone, style, audience, and overall message. P
                 mime="text/plain"
             )
 
-            # Download as image
             img = create_text_image(ai_output)
             img_bytes = BytesIO()
             img.save(img_bytes, format='PNG')
