@@ -1,4 +1,3 @@
-
 import streamlit as st
 import openai
 import os
@@ -22,7 +21,7 @@ with st.form("book_form"):
     submitted = st.form_submit_button("Compare Books")
 
 # OpenAI API key from environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def create_text_image(text):
     # Create a simple image from the comparison text
@@ -66,7 +65,7 @@ Include key aspects such as focus, tone, style, audience, and overall message. P
 """
 
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a literary analyst."},
@@ -75,7 +74,7 @@ Include key aspects such as focus, tone, style, audience, and overall message. P
                 temperature=0.7,
                 max_tokens=1800
             )
-            ai_output = response["choices"][0]["message"]["content"]
+            ai_output = response.choices[0].message.content
 
             # Format text as markdown with spacing
             st.markdown("## 📖 Comparison Analysis")
